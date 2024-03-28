@@ -37,7 +37,7 @@ public class RepoUserDetailImpl implements RepoUserDetails {
         em.getTransaction().commit();
         String[] headers = {"First Name", "Last Name", "Address", "Date of Birth"};
         String userDetailData = Stream.of(userDetails)
-                .map(ud -> new String[]{String.valueOf(ud.getFirstName(), ud.getLastName(), ud.getAddress(), String.valueOf(ud.getDateOfBirth())})
+                .map(ud -> new String[]{ud.getFirstName(), ud.getLastName(), ud.getAddress(), String.valueOf(ud.getDateOfBirth())})
                 .collect(Collectors.collectingAndThen(
                         Collectors.toList(),
                         list -> {
