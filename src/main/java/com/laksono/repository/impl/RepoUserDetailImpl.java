@@ -8,6 +8,8 @@ import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.Query;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class RepoUserDetailImpl implements RepoUserDetails {
     private final EntityManager em;
@@ -33,7 +35,37 @@ public class RepoUserDetailImpl implements RepoUserDetails {
                 .setParameter(5, userDetails.getDateOfBirth())
                 .executeUpdate();
         em.getTransaction().commit();
-        System.out.println("Data inserted with native query!");
+        String[] headers = {"First Name", "Last Name", "Address", "Date of Birth"};
+        String userDetailData = Stream.of(userDetails)
+                .map(ud -> new String[]{String.valueOf(ud.getFirstName(), ud.getLastName(), ud.getAddress(), String.valueOf(ud.getDateOfBirth())})
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toList(),
+                        list -> {
+                            int[] columnWidths = new int[headers.length];
+                            list.forEach(data -> {
+                                for (int i = 0; i < data.length; i++) {
+                                    columnWidths[i] = Math.max(columnWidths[i], data[i].length());
+                                }
+                            });
+
+                            StringBuilder sb = new StringBuilder();
+                            sb.append("Data Detail user inserted successfully:\n");
+
+                            // Print header row
+                            printRow(sb, headers, columnWidths);
+
+                            // Print separator
+                            printSeparator(sb, columnWidths);
+
+                            // Print data rows
+                            list.forEach(data -> printRow(sb, data, columnWidths));
+
+                            // Print bottom separator
+                            printSeparator(sb, columnWidths);
+
+                            return sb.toString();
+                        }));
+        System.out.println(userDetailData);
     }
 
     @Override
@@ -91,5 +123,23 @@ public class RepoUserDetailImpl implements RepoUserDetails {
 
         System.out.println(userDetails.toStringView());
 
+    }
+
+    private static void printRow(StringBuilder sb, String[] rowData, int[] columnWidths) {
+        sb.append("|");
+        for (int i = 0; i < rowData.length; i++) {
+            sb.append(" ");
+            sb.append(String.format("%-" + columnWidths[i] + "s", rowData[i]));
+            sb.append(" |");
+        }
+        sb.append("\n");
+    }
+
+    private static void printSeparator(StringBuilder sb, int[] columnWidths) {
+        sb.append("+");
+        for (int width : columnWidths) {
+            sb.append("-".repeat(width + 2)).append("+");
+        }
+        sb.append("\n");
     }
 }

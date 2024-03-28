@@ -36,19 +36,84 @@ public class RepoTransactionImpl implements RepoTransaction {
 
     @Override
     public List<Transaction> getTransactionById(String username) {
-        System.out.println(username);
-        Query preQuery = em.createNativeQuery("SELECT * FROM users WHERE username = ?",User.class);
+        System.out.println("Transaksi untuk pengguna: " + username);
+
+        Query preQuery = em.createNativeQuery("SELECT * FROM users WHERE username = ?", User.class);
         preQuery.setParameter(1, username);
 
         User user = (User) preQuery.getSingleResult();
 
-        System.out.println(user.getId() + "id");
         Query query = em.createNativeQuery("SELECT * FROM transactions WHERE sender_id = ?", Transaction.class);
         query.setParameter(1, user.getId());
 
         List<Transaction> transactions = query.getResultList();
-        System.out.println(transactions.toString());
-//        return transactions;
+
+        if (transactions.isEmpty()) {
+            System.out.println("Tidak ada transaksi untuk pengguna: " + username);
+//            return;
+        }
+
+        String[] headers = {"Pengirim", "Penerima", "Jumlah", "Waktu"};
+
+        List<List<String>> data = transactions.stream()
+                .map(t -> List.of(
+                        t.getSender().getUsername(),
+                        t.getReceiver().getUsername(),
+                        t.getAmount().toString(),
+                        t.getTimeStamp().toString()
+                ))
+                .toList();
+
+        printTable(headers, data);
         return null;
+    }
+
+    private void printTable(String[] headers, List<List<String>> data) {
+        int[] columnWidths = calculateColumnWidths(headers, data);
+
+        printRow(headers, columnWidths);
+        printSeparator(columnWidths);
+
+        for (List<String> rowData : data) {
+            printRow(rowData.toArray(new String[0]), columnWidths);
+        }
+
+        printSeparator(columnWidths);
+    }
+
+    private int[] calculateColumnWidths(String[] headers, List<List<String>> data) {
+        int[] columnWidths = new int[headers.length];
+
+        for (int i = 0; i < headers.length; i++) {
+            columnWidths[i] = headers[i].length();
+        }
+
+        for (List<String> rowData : data) {
+            for (int i = 0; i < rowData.size(); i++) {
+                columnWidths[i] = Math.max(columnWidths[i], rowData.get(i).length());
+            }
+        }
+
+        return columnWidths;
+    }
+
+    private void printRow(String[] rowData, int[] columnWidths) {
+        StringBuilder rowBuilder = new StringBuilder("|");
+
+        for (int i = 0; i < rowData.length; i++) {
+            rowBuilder.append(String.format(" %-" + (columnWidths[i] + 1) + "s|", rowData[i]));
+        }
+
+        System.out.println(rowBuilder);
+    }
+
+    private void printSeparator(int[] columnWidths) {
+        StringBuilder separatorBuilder = new StringBuilder("+");
+
+        for (int width : columnWidths) {
+            separatorBuilder.append("-".repeat(width + 2)).append("+");
+        }
+
+        System.out.println(separatorBuilder);
     }
 }

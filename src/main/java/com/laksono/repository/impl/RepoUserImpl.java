@@ -11,6 +11,8 @@ import jakarta.persistence.Query;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class RepoUserImpl implements RepoUser {
     private final EntityManager em;
@@ -35,7 +37,30 @@ public class RepoUserImpl implements RepoUser {
                 .setParameter(4, user.getUserDetails().getId())
                 .executeUpdate();
         em.getTransaction().commit();
-        System.out.println("Data inserted with native query!");
+        String[] headers = {"Username", "PIN", "Balance", "User Details ID"};
+        String[] userData = {user.getUsername(), user.getPin(), "0", String.valueOf(user.getUserDetails().getId())};
+
+        String table = Stream.of(headers, userData)
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toList(),
+                        list -> {
+                            int[] columnWidths = new int[headers.length];
+                            list.forEach(data -> {
+                                for (int i = 0; i < data.length; i++) {
+                                    columnWidths[i] = Math.max(columnWidths[i], data[i].length());
+                                }
+                            });
+
+                            StringBuilder sb = new StringBuilder();
+                            printRow(sb, headers, columnWidths);
+                            printSeparator(sb, columnWidths);
+                            printRow(sb, userData, columnWidths);
+                            printSeparator(sb, columnWidths);
+                            return sb.toString();
+                        }));
+
+        System.out.println("Data User inserted successfully:");
+        System.out.println(table);
     }
 
     @Override
@@ -71,7 +96,6 @@ public class RepoUserImpl implements RepoUser {
 
     @Override
     public void getSaldobyUsername(String username) {
-        System.out.println(username);
         Query query = em.createNativeQuery("SELECT balance FROM users WHERE username = :username");
         query.setParameter("username", username);
 
@@ -85,9 +109,29 @@ public class RepoUserImpl implements RepoUser {
             // Handle other exceptions
             e.printStackTrace();
         }
-        System.out.println("saldo kamu: ");
-        System.out.println(balance);
 
+        String[] headers = {"Saldo"};
+        String[] userData = {String.valueOf(balance)};
+
+        String table = Stream.of(headers, userData)
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toList(),
+                        list -> {
+                            int[] columnWidths = new int[headers.length];
+                            list.forEach(data -> {
+                                for (int i = 0; i < data.length; i++) {
+                                    columnWidths[i] = Math.max(columnWidths[i], data[i].length());
+                                }
+                            });
+
+                            StringBuilder sb = new StringBuilder();
+                            printRow(sb, headers, columnWidths);
+                            printSeparator(sb, columnWidths);
+                            printRow(sb, userData, columnWidths);
+                            printSeparator(sb, columnWidths);
+                            return sb.toString();
+                        }));
+        System.out.println(table);
     }
 
     @Override
@@ -118,10 +162,12 @@ public class RepoUserImpl implements RepoUser {
                 topUpTrans.setSender(user);
                 topUpTrans.setTimeStamp(LocalDateTime.now());
 
-                            em.persist(topUpTrans);
+                em.persist(topUpTrans);
 
                 transaction.commit();
-                System.out.println("Balance updated successfully for user: " + username);
+                System.out.println();
+                System.out.printf("Balance updated successfully for user '%s'.%n", username);
+                System.out.println();
             } else {
                 transaction.rollback();
                 System.err.println("Failed to update balance for user: " + username);
@@ -200,7 +246,9 @@ public class RepoUserImpl implements RepoUser {
 
             // Commit transaction
             transaction.commit();
-            System.out.println("Balance transfer successful from " + sender + " to " + receiver);
+            System.out.println();
+            System.out.printf("Balance transfer successful from %s to %s%n", sender, receiver);
+            System.out.println();
         } catch (Exception e) {
             if (transaction != null && transaction.isActive()) {
                 transaction.rollback();
@@ -209,6 +257,27 @@ public class RepoUserImpl implements RepoUser {
             // Handle exception appropriately (e.g., log error, throw custom exception)
         }
     }
+
+
+
+    private static void printRow(StringBuilder sb, String[] rowData, int[] columnWidths) {
+        sb.append("|");
+        for (int i = 0; i < rowData.length; i++) {
+            sb.append(" ");
+            sb.append(String.format("%-" + columnWidths[i] + "s", rowData[i]));
+            sb.append(" |");
+        }
+        sb.append("\n");
+    }
+
+    private static void printSeparator(StringBuilder sb, int[] columnWidths) {
+        sb.append("+");
+        for (int width : columnWidths) {
+            sb.append("-".repeat(width + 2)).append("+");
+        }
+        sb.append("\n");
+    }
+
 
 
 }
