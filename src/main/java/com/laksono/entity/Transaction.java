@@ -1,5 +1,7 @@
 package com.laksono.entity;
 
+import com.laksono.utils.ECategory;
+import com.laksono.utils.EPaymentAccount;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -11,35 +13,70 @@ public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
-
     @ManyToOne
     @JoinColumn(name = "sender_id")
     private User sender;
-
     @ManyToOne
     @JoinColumn(name = "receiver_id")
     private User receiver;
-
     @Column(nullable = false)
     private BigDecimal amount;
-
     @Column(nullable = false)
     private LocalDateTime timeStamp;
+    @Enumerated(EnumType.STRING)
+    private ECategory category;
+    @Enumerated(EnumType.STRING)
+    private EPaymentAccount paymentAccount;
+    private Number referencePaymentAccount;
 
-    public Transaction(String id, User sender, User receiver, BigDecimal amount, LocalDateTime timeStamp) {
+    public Transaction(
+            String id,
+            User sender,
+            User receiver,
+            BigDecimal amount,
+            LocalDateTime timeStamp,
+            ECategory category,
+            EPaymentAccount ePaymentAccount,
+            Number referencePaymentAccount
+    ) {
         this.id = id;
         this.sender = sender;
         this.receiver = receiver;
         this.amount = amount;
         this.timeStamp = timeStamp;
+        this.category = category;
+        this.paymentAccount = ePaymentAccount;
+        this.referencePaymentAccount = referencePaymentAccount;
     }
 
     public Transaction() {
 
     }
+    public ECategory getCategory() {
+        return category;
+    }
 
+    public void setCategory(ECategory category) {
+        this.category = category;
+    }
     public String getId() {
         return id;
+    }
+
+    public EPaymentAccount getPaymentAccount() {
+        return paymentAccount;
+    }
+
+    public Number getReferencePaymentAccount() {
+        return referencePaymentAccount;
+    }
+
+    public void setReferencePaymentAccount(Number referencePaymentAccount) {
+        this.referencePaymentAccount = referencePaymentAccount;
+    }
+
+    public void setPaymentAccount(EPaymentAccount paymentAccount) {
+        this.paymentAccount = paymentAccount;
     }
 
     public void setId(String id) {

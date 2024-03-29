@@ -3,12 +3,15 @@ package com.laksono.repository.impl;
 import com.laksono.entity.Transaction;
 import com.laksono.entity.User;
 import com.laksono.repository.RepoUser;
+import com.laksono.utils.ECategory;
+import com.laksono.utils.EPaymentAccount;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.Query;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -160,6 +163,7 @@ public class RepoUserImpl implements RepoUser {
                 topUpTrans.setAmount(amount);
                 topUpTrans.setReceiver(user);
                 topUpTrans.setSender(user);
+                topUpTrans.setCategory(ECategory.TOPUP);
                 topUpTrans.setTimeStamp(LocalDateTime.now());
 
                 em.persist(topUpTrans);
@@ -241,6 +245,7 @@ public class RepoUserImpl implements RepoUser {
             transactionUpdated.setAmount(amount);
             transactionUpdated.setSender(senderQuery);
             transactionUpdated.setReceiver(receiverQuery);
+            transactionUpdated.setCategory(ECategory.TRANSFER);
             transactionUpdated.setTimeStamp(LocalDateTime.now());
             em.persist(transactionUpdated);
 
@@ -258,7 +263,68 @@ public class RepoUserImpl implements RepoUser {
         }
     }
 
+    @Override
+    public void makePayment(
+            String username,
+            BigInteger recipientPayment,
+            BigDecimal paymentAmount,
+            EPaymentAccount choosePayment
+    ) {
+        EntityTransaction transaction = null;
 
+
+
+        try {
+            transaction = em.getTransaction();
+            transaction.begin();
+
+            Query balanceQuery = em.createNativeQuery(
+                    "SELECT balance FROM users WHERE username = :username");
+            balanceQuery.setParameter("username", username);
+            BigDecimal senderBalance = (BigDecimal) balanceQuery.getSingleResult();
+
+            Query deductQuery = em.createNativeQuery(
+                    "UPDATE users SET balance = balance - :amount WHERE username = :username");
+            deductQuery.setParameter("amount", paymentAmount);
+            deductQuery.setParameter("username", username);
+            int senderUpdatedRows = deductQuery.executeUpdate();
+
+            // Check if the deduction was successful for the sender
+            if (senderUpdatedRows <= 0) {
+                transaction.rollback();
+                System.err.println("Failed to deduct balance from sender: " + username);
+                return;
+            }
+
+
+
+            // Record the transfer transaction for both sender and receiver
+            User senderQuery = em.createQuery("SELECT u FROM User u WHERE u.username = :username", User.class)
+                    .setParameter("username", username)
+                    .getSingleResult();
+
+            Transaction transactionUpdated = new Transaction();
+            transactionUpdated.setAmount(paymentAmount);
+            transactionUpdated.setSender(senderQuery);
+            transactionUpdated.setCategory(ECategory.PAYMENT);
+            transactionUpdated.setPaymentAccount(choosePayment);
+            transactionUpdated.setReferencePaymentAccount(recipientPayment);
+            transactionUpdated.setTimeStamp(LocalDateTime.now());
+            em.persist(transactionUpdated);
+
+            // Commit transaction
+            transaction.commit();
+            System.out.println();
+            System.out.printf("Balance transfer successful from %s to %s%n", username, recipientPayment);
+            System.out.println();
+        } catch (Exception e) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            e.printStackTrace();
+            // Handle exception appropriately (e.g., log error, throw custom exception)
+        }
+    }
 
     private static void printRow(StringBuilder sb, String[] rowData, int[] columnWidths) {
         sb.append("|");
@@ -277,7 +343,4 @@ public class RepoUserImpl implements RepoUser {
         }
         sb.append("\n");
     }
-
-
-
 }

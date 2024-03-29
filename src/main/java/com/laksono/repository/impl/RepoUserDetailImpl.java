@@ -87,9 +87,9 @@ public class RepoUserDetailImpl implements RepoUserDetails {
             query.setParameter("id", findUserDetail.getId());
             query.executeUpdate();
 
-            em.merge(userDetails);
             transaction.commit();
-            System.out.println(userDetails);
+            em.refresh(user.getUserDetails());
+            System.out.println("User details updated successfully.");
         } catch (RuntimeException e) {
             // Rollback the transaction if an exception occurs
             if (transaction.isActive()) {

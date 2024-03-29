@@ -6,10 +6,12 @@ import com.laksono.entity.UserDetails;
 import com.laksono.repository.impl.RepoTransactionImpl;
 import com.laksono.repository.impl.RepoUserDetailImpl;
 import com.laksono.repository.impl.RepoUserImpl;
+import com.laksono.utils.EPaymentAccount;
 
 
 import javax.crypto.SecretKey;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.util.Scanner;
 import java.util.UUID;
@@ -99,7 +101,7 @@ public class UserController {
             System.out.println("Choose an option:");
             System.out.println("1. info saldo");
             System.out.println("2. Top Up");
-            System.out.println("3. Transfer");
+            System.out.println("3. Transfer / payment");
             System.out.println("4. My Transaction");
             System.out.println("5. Settings");
             System.out.println("6. Logout");
@@ -122,14 +124,69 @@ public class UserController {
                     repoUser.topUpSaldo(Main.username(), amount);
                     break;
                 case 3:
-                    // Service 3 logic
-                    System.out.println("transfer");
-                    System.out.print("Enter amount: ");
-                    BigDecimal amountTransfer = scanner.nextBigDecimal();
+                    // Transfer and Payment logic
+                    System.out.println("1. Transfer");
+                    System.out.println("2. Payment");
+                    System.out.print("Enter your choice: ");
+                    int transferOrPaymentChoice = scanner.nextInt();
                     scanner.nextLine();
-                    System.out.print("Enter receiver: ");
-                    String receiver = scanner.nextLine();
-                    repoUser.transferSaldo(Main.username(), receiver, amountTransfer);
+
+                    switch (transferOrPaymentChoice) {
+                        case 1:
+                            // Transfer
+                            System.out.print("Enter amount to transfer: ");
+                            BigDecimal amountToTransfer = scanner.nextBigDecimal();
+                            scanner.nextLine();
+                            System.out.print("Enter receiver's: ");
+                            String receiverUsername = scanner.nextLine();
+                            repoUser.transferSaldo(Main.username(), receiverUsername, amountToTransfer);
+                            break;
+                        case 2:
+                            // Payment
+                            System.out.println("Choose payment:");
+                            System.out.println("1. PULSA");
+                            System.out.println("2. PLN");
+                            System.out.println("3. PAM");
+                            System.out.print("Enter your choice: ");
+                            int paymentMethod = scanner.nextInt();
+                            scanner.nextLine();
+                            switch (paymentMethod) {
+                                case 1:
+                                    // Pembayaran PULSA
+                                    System.out.print("Enter phone number: ");
+                                    BigInteger phoneNumber = scanner.nextBigInteger();
+                                    scanner.nextLine();
+                                    System.out.print("Enter PULSA amount: ");
+                                    BigDecimal pulsaAmount = scanner.nextBigDecimal();
+                                    scanner.nextLine();
+                                    repoUser.makePayment(Main.username(), phoneNumber, pulsaAmount, EPaymentAccount.PULSA);
+                                    break;
+                                case 2:
+                                    // Pembayaran PLN
+                                    System.out.print("Enter PLN customer ID: ");
+                                    BigInteger plnCustomerId = scanner.nextBigInteger();
+                                    System.out.print("Enter PLN payment amount: ");
+                                    BigDecimal plnAmount = scanner.nextBigDecimal();
+                                    scanner.nextLine();
+                                    repoUser.makePayment(Main.username(), plnCustomerId, plnAmount, EPaymentAccount.PLN);
+                                    break;
+                                case 3:
+                                    // Pembayaran PAM
+                                    System.out.print("Enter PAM account number: ");
+                                    BigInteger pamAccountNumber = scanner.nextBigInteger();
+                                    System.out.print("Enter PAM payment amount: ");
+                                    BigDecimal pamAmount = scanner.nextBigDecimal();
+                                    scanner.nextLine();
+                                    repoUser.makePayment(Main.username(), pamAccountNumber, pamAmount, EPaymentAccount.PAM);
+                                    break;
+                                default:
+                                    System.out.println("Invalid choice.");
+                            }
+                            break;
+                        default:
+                            System.out.println("Invalid choice.");
+                            break;
+                    }
                     break;
                 case 4:
                     System.out.println("my transaction");
